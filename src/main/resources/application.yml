@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: bdd
+server:
+  port: 8080
+
+cors:
+  allowed:
+    origins:
+      http://localhost:63342,
+      http://localhost:3000,
+      http://booroute.com,
+      https://booroute.com
+    headers:
+      Origin,
+      X-Requested-with,
+      Accept,
+      Authorization,
+      Content-Type,
+      Credential-Token,
+      Access-Token,
+      Refresh-Token,
+      Access-Control-Allow-Headers,
+      Access-Control-Allow-Origin,
+      Access-Control-Request-Method,
+      Access-Control-Request-Headers

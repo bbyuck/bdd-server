@@ -27,6 +27,15 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
+
+	implementation 'org.apache.poi:poi:4.1.2'
+	implementation 'org.apache.poi:poi-ooxml:4.1.2'
+	implementation 'org.apache.poi:poi-ooxml-schemas:4.1.2'
+	implementation 'org.apache.xmlbeans:xmlbeans:3.1.0'
+	implementation 'org.apache.commons:commons-compress:1.19'
+
+
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
