@@ -27,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -78,7 +79,7 @@ public class ExcelTransformService {
      * @return
      */
     public File createCnpXls(File excelFile, ShopCode shopCode) {
-        String tempFileName = LocalDate.now() + "_" + shopCode.getValue() + "- Cnp.xls";
+        String tempFileName = LocalDateTime.now() + "_" + shopCode.getValue() + "- Cnp.xls";
 
         // cnp input list
         List<CnpInputDto> cnpInputLs =
@@ -151,10 +152,10 @@ public class ExcelTransformService {
     public File createCountXlsx(File excelFile, ShopCode shopCode) {
         try (XSSFWorkbook xlsxWb = new XSSFWorkbook()) {
             List<Pair> countLs = shopCode == ShopCode.COUPANG ? coupangCountList() : shopCode == ShopCode.NAVER ? naverCountList() : null;
-            String tempFileName = LocalDate.now() + "_" + shopCode.getValue() + " 판매량.xlsx";
+            String tempFileName = LocalDateTime.now() + "_" + shopCode.getValue() + " 판매량.xlsx";
 
             // sheet 생성
-            XSSFSheet sheet = xlsxWb.createSheet(LocalDate.now() + " 판매량");
+            XSSFSheet sheet = xlsxWb.createSheet(LocalDateTime.now() + " 판매량");
 
             // 스타일
             CellStyle menu = xlsxWb.createCellStyle();
@@ -1222,7 +1223,7 @@ public class ExcelTransformService {
 
 
     private void enterTrackingNumberOnOrderExcel(File orderExcel, List<String> trackingNumberList, ShopCode shopCode) {
-        File xlsxFile = new File(LocalDate.now() + "_쿠팡 운송장 업로드.xlsx");
+        File xlsxFile = new File(LocalDateTime.now() + "_쿠팡 운송장 업로드.xlsx");
         int headerIndex = shopCode == ShopCode.COUPANG ? 0 : shopCode == ShopCode.NAVER ? 1 : 0;
 
         try (XSSFWorkbook xlsxWb = excelReader.readXlsxFile(orderExcel);
