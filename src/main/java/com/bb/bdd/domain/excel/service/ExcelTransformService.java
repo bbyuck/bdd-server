@@ -2,7 +2,10 @@ package com.bb.bdd.domain.excel.service;
 
 import com.bb.bdd.domain.excel.DownloadCode;
 import com.bb.bdd.domain.excel.ShopCode;
-import com.bb.bdd.domain.excel.dto.*;
+import com.bb.bdd.domain.excel.dto.CnpInputDto;
+import com.bb.bdd.domain.excel.dto.CoupangColumnDto;
+import com.bb.bdd.domain.excel.dto.NaverColumnDto;
+import com.bb.bdd.domain.excel.dto.Pair;
 import com.bb.bdd.domain.excel.util.ExcelReader;
 import com.bb.bdd.domain.excel.util.FileManager;
 import jakarta.annotation.PostConstruct;
@@ -20,13 +23,12 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -47,8 +49,6 @@ public class ExcelTransformService {
     private final HashMap<String, String> naverProductDict = new HashMap<>();
     private final HashMap<String, String> naverOptionDict = new HashMap<>();
 
-    private final String COUPANG_COUNT_MAP_KEY = "coupang-count";
-    private final String NAVER_COUNT_MAP_KEY = "naver-count";
     // 쿠팡 제목 바꾸는 엑셀파일
     private final String COUPANG_DICT_URI = "dict/coupang_dict.xlsx";
     private final String NAVER_DICT_URI = "dict/naver_dict.xlsx";
@@ -62,7 +62,7 @@ public class ExcelTransformService {
     private static final ThreadLocal<Map<String, Integer>> threadLocalCoupangCountMap = ThreadLocal.withInitial(() -> null);
     private static final ThreadLocal<Map<String, Integer>> threadLocalNaverCountMap = ThreadLocal.withInitial(() -> null);
 
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
 
     /**
      * ====================================  공통  ========================================
@@ -81,9 +81,9 @@ public class ExcelTransformService {
         // cnp input list
         List<CnpInputDto> cnpInputLs =
                 shopCode == ShopCode.COUPANG
-                        ? readCoupang(excelFile)
+                        ? parseCoupang(excelFile)
                         : shopCode == ShopCode.NAVER
-                        ? readNaver(excelFile) : null;
+                        ? parseNaver(excelFile) : null;
 
         try (HSSFWorkbook xlsWb = new HSSFWorkbook()) {
             // sheet 생성
@@ -134,7 +134,7 @@ public class ExcelTransformService {
             }
 
             return fileManager.createTempFile(xlsWb, tempFileName);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("쿠팡 운송장 출력 엑셀 파일을 생성하는 중 에러가 발생했습니다.");
         }
@@ -180,7 +180,7 @@ public class ExcelTransformService {
             }
 
             return fileManager.createTempFile(xlsxWb, tempFileName);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException(shopCode.getValue() + " 판매량 집계 엑셆 파일을 생성하는 중 에러가 발생했습니다.");
         } finally {
@@ -281,7 +281,7 @@ public class ExcelTransformService {
                     coupangCountMap.put(value, 0);
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("쿠팡 판매 목록을 읽어오는 중 에러가 발생했습니다.");
         }
@@ -296,7 +296,7 @@ public class ExcelTransformService {
      * @param file
      * @return CnpInputDto list
      */
-    private List<CnpInputDto> readCoupang(File file) {
+    private List<CnpInputDto> parseCoupang(File file) {
         List<CnpInputDto> answer = new ArrayList<>();
         List<CoupangColumnDto> coupangLs = new ArrayList<>();
         Map<String, CoupangColumnDto> ansMap = new HashMap<>();
@@ -433,7 +433,7 @@ public class ExcelTransformService {
 
                 answer.add(cnpInput);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("쿠팡 파일을 CNP 입력 양식으로 변환하는 과정에서 문제가 발생했습니다..");
         }
@@ -500,7 +500,7 @@ public class ExcelTransformService {
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("네이버 판매 목록을 읽어오는 중 에러가 발생했습니다.");
         }
@@ -541,7 +541,7 @@ public class ExcelTransformService {
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("네이버 판매 목록을 읽어오는 중 에러가 발생했습니다.");
         }
@@ -556,7 +556,7 @@ public class ExcelTransformService {
      * @param file
      * @return CnpInputDto list
      */
-    private List<CnpInputDto> readNaver(File file) {
+    private List<CnpInputDto> parseNaver(File file) {
         List<CnpInputDto> answer = new ArrayList<>();
         List<NaverColumnDto> naverLs = new ArrayList<>();
         Map<String, NaverColumnDto> map = new HashMap<>();
@@ -710,7 +710,7 @@ public class ExcelTransformService {
 
                 answer.add(cnpInput);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("네이버 엑셀 파일을 읽어 CNP 양식으로 변환하는 도중 에러가 발생했습니다.");
         }
@@ -745,472 +745,112 @@ public class ExcelTransformService {
      */
 
     /**
-     * 운송장 번호 입력을 위해 쿠팡 주문 엑셀을 읽고 파싱한다.
-     * @param file
+     * 운송장 번호 매핑을 위한 키를 생성
+     * ${수취인명_수취인번호} 형태로 생성
+     * @param receiverName
+     * @param phone
      * @return
      */
-    private List<CoupangColumnDto> readCoupangOrderExcelToEnterTrackingNumber(File file) {
-        List<CoupangColumnDto> answer = new ArrayList<>();
-
-        try (XSSFWorkbook workbook = excelReader.readXlsxFile(file)) {
-            XSSFSheet sheet = workbook.getSheetAt(0); // 해당 엑셀파일의 시트수
-            int rows = sheet.getPhysicalNumberOfRows(); // 해당 시트의 행의 개수
-//		System.out.println(rows);
-            XSSFRow row = sheet.getRow(0);
-            int cells = row.getPhysicalNumberOfCells();
-
-            int idxA = -1, idxB = -1, idxC = -1, idxD = -1, idxE = -1, idxF = -1, idxG = -1, idxH = -1, idxI = -1,
-                    idxJ = -1, idxK = -1, idxL = -1, idxM = -1,
-                    idxN = -1, idxO = -1, idxP = -1, idxQ = -1,
-                    idxR = -1, idxS = -1, idxT = -1, idxU = -1,
-                    idxV = -1, idxW = -1, idxX = -1, idxY = -1,
-                    idxZ = -1, idxAA = -1,
-                    idxAB = -1, idxAC = -1, idxAD = -1, idxAE = -1,
-                    idxAF = -1, idxAG = -1, idxAH = -1, idxAI = -1,
-                    idxAJ = -1, idxAK = -1, idxAL = -1, idxAM = -1, idxAN = -1;
-
-            for (int colIdx = 0; colIdx < cells; colIdx++) {
-                String menu = row.getCell(colIdx).getStringCellValue();
-
-                if (menu.equals("번호")) idxA = colIdx;
-                if (menu.equals("묶음배송번호")) idxB = colIdx;
-                if (menu.equals("주문번호")) idxC = colIdx;
-                if (menu.equals("택배사")) idxD = colIdx;
-                if (menu.equals("운송장번호")) idxE = colIdx;
-                if (menu.equals("분리배송 Y/N")) idxF = colIdx;
-                if (menu.equals("분리배송 출고예정일")) idxG = colIdx;
-                if (menu.equals("주문시 출고예정일")) idxH = colIdx;
-                if (menu.equals("출고일(발송일)")) idxI = colIdx;
-                if (menu.equals("주문일")) idxJ = colIdx;
-                if (menu.equals("등록상품명")) idxK = colIdx;
-                if (menu.equals("등록옵션명")) idxL = colIdx;
-                if (menu.equals("노출상품명(옵션명)")) idxM = colIdx;
-                if (menu.equals("노출상품ID")) idxN = colIdx;
-                if (menu.equals("옵션ID")) idxO = colIdx;
-                if (menu.equals("최초등록옵션명")) idxP = colIdx;
-                if (menu.equals("업체상품코드")) idxQ = colIdx;
-                if (menu.equals("바코드")) idxR = colIdx;
-                if (menu.equals("결제액")) idxS = colIdx;
-                if (menu.equals("배송비구분")) idxT = colIdx;
-                if (menu.equals("배송비")) idxU = colIdx;
-                if (menu.equals("도서산간 추가배송비")) idxV = colIdx;
-                if (menu.equals("구매수(수량)")) idxW = colIdx;
-                if (menu.equals("옵션판매가(판매단가)")) idxX = colIdx;
-                if (menu.equals("구매자")) idxY = colIdx;
-                if (menu.equals("구매자전화번호")) idxZ = colIdx;
-                if (menu.equals("수취인이름")) idxAA = colIdx;
-                if (menu.equals("수취인전화번호")) idxAB = colIdx;
-                if (menu.equals("우편번호")) idxAC = colIdx;
-                if (menu.equals("수취인 주소")) idxAD = colIdx;
-                if (menu.equals("배송메세지")) idxAE = colIdx;
-                if (menu.equals("상품별 추가메시지")) idxAF = colIdx;
-                if (menu.equals("주문자 추가메시지")) idxAG = colIdx;
-                if (menu.equals("배송완료일")) idxAH = colIdx;
-                if (menu.equals("구매확정일자")) idxAI = colIdx;
-                if (menu.equals("개인통관번호(PCCC)")) idxAJ = colIdx;
-                if (menu.equals("통관용구매자전화번호")) idxAK = colIdx;
-                if (menu.equals("기타")) idxAL = colIdx;
-                if (menu.equals("결제위치")) idxAM = colIdx;
-
-            }
-
-
-            // 파싱
-            for (int rowIdx = 1; rowIdx < rows; rowIdx++) {
-                row = sheet.getRow(rowIdx); // 각 행을 읽어온다
-                CoupangColumnDto coupangData = new CoupangColumnDto();
-
-                if (row != null) {
-
-                    int thisNum = 0;
-                    String shippingNum = "";
-                    String orderNum = "";
-                    String courier = "";
-                    String waybillNum = "";
-                    String separateDelivery = "";
-                    String separateExpectedDeliveryDate = "";
-                    String expectedDeliveryDate = "";
-                    String deliveryDate = "";
-                    String orderDate = "";
-                    String productName = "";
-                    String optionName = "";
-                    String displayedProductName = "";
-                    String displayedProductId = "";
-                    String optionId = "";
-                    String firstOptionName = "";
-                    String productCode = "";
-                    String barcode = "";
-                    Integer payment = null;
-                    String deliveryFeeFlag = "";
-                    Integer deliveryFee = null;
-                    Integer additionalDeliveryFee = null;
-                    Integer quantity = null;
-                    Integer unitPrice = null;
-                    String customerName = "";
-                    String customerEmail = "";
-                    String customerPhone = "";
-                    String receiverName = "";
-                    String receiverPhone = "";
-                    String postNum = "";
-                    String receiverAddress = "";
-                    String deliveryMessage = "";
-                    String additionalMessagePerItem = "";
-                    String ordererAdditionalMessage = "";
-                    String deliveryCompleteDate = "";
-                    String confirmationPurchaseDate = "";
-                    String pccc = "";
-                    String buyerPhoneNumForCustomsClearance = "";
-                    String etc = "";
-                    String paymentLocation = "";
-
-                    if (row.getCell(idxA) != null) thisNum = Integer.parseInt(row.getCell(idxA).getStringCellValue());
-                    else throw new IOException();
-                    if (row.getCell(idxB) != null) shippingNum = row.getCell(idxB).getStringCellValue();
-                    else throw new IOException();
-                    if (row.getCell(idxC) != null) orderNum = row.getCell(idxC).getStringCellValue();
-                    else throw new IOException();
-
-                    if (row.getCell(idxD) != null) courier = row.getCell(idxD).getStringCellValue();
-                    if (row.getCell(idxE) != null) waybillNum = row.getCell(idxE).getStringCellValue();
-                    if (row.getCell(idxF) != null) separateDelivery = row.getCell(idxF).getStringCellValue();
-                    if (row.getCell(idxG) != null)
-                        separateExpectedDeliveryDate = row.getCell(idxG).getStringCellValue();
-                    if (row.getCell(idxH) != null) expectedDeliveryDate = row.getCell(idxH).getStringCellValue();
-                    if (row.getCell(idxI) != null) deliveryDate = row.getCell(idxI).getStringCellValue();
-                    if (row.getCell(idxJ) != null) orderDate = row.getCell(idxJ).getStringCellValue();
-                    if (row.getCell(idxK) != null) productName = row.getCell(idxK).getStringCellValue();
-                    if (row.getCell(idxL) != null) optionName = row.getCell(idxL).getStringCellValue();
-                    if (row.getCell(idxM) != null) displayedProductName = row.getCell(idxM).getStringCellValue();
-                    if (row.getCell(idxN) != null) displayedProductId = row.getCell(idxN).getStringCellValue();
-                    if (row.getCell(idxO) != null) optionId = row.getCell(idxO).getStringCellValue();
-                    if (row.getCell(idxP) != null) firstOptionName = row.getCell(idxP).getStringCellValue();
-                    if (row.getCell(idxQ) != null) productCode = row.getCell(idxQ).getStringCellValue();
-                    if (row.getCell(idxR) != null) barcode = row.getCell(idxR).getStringCellValue();
-
-                    if (row.getCell(idxS) != null) payment = Integer.parseInt(row.getCell(idxS).getStringCellValue());
-                    else throw new IOException();
-                    if (row.getCell(idxT) != null) deliveryFeeFlag = row.getCell(idxT).getStringCellValue();
-                    else throw new IOException();
-                    if (row.getCell(idxU) != null)
-                        deliveryFee = Integer.parseInt(row.getCell(idxU).getStringCellValue());
-                    else throw new IOException();
-                    if (row.getCell(idxV) != null)
-                        additionalDeliveryFee = Integer.parseInt(row.getCell(idxV).getStringCellValue());
-                    else throw new IOException();
-                    if (row.getCell(idxW) != null) quantity = Integer.parseInt(row.getCell(idxW).getStringCellValue());
-                    else throw new IOException();
-                    if (row.getCell(idxX) != null) unitPrice = Integer.parseInt(row.getCell(idxX).getStringCellValue());
-                    else throw new IOException();
-
-                    if (row.getCell(idxY) != null) customerName = row.getCell(idxY).getStringCellValue();
-                    if (row.getCell(idxZ) != null) customerPhone = row.getCell(idxZ).getStringCellValue();
-                    else throw new IOException();
-
-                    if (row.getCell(idxAA) != null) receiverName = row.getCell(idxAA).getStringCellValue();
-                    else throw new IOException();
-
-                    if (row.getCell(idxAB) != null) receiverPhone = row.getCell(idxAB).getStringCellValue();
-
-                    if (row.getCell(idxAC) != null) postNum = row.getCell(idxAC).getStringCellValue();
-                    else throw new IOException();
-
-                    if (row.getCell(idxAD) != null) receiverAddress = row.getCell(idxAD).getStringCellValue();
-                    if (row.getCell(idxAE) != null) deliveryMessage = row.getCell(idxAE).getStringCellValue();
-                    if (row.getCell(idxAF) != null) additionalMessagePerItem = row.getCell(idxAF).getStringCellValue();
-                    if (row.getCell(idxAG) != null) ordererAdditionalMessage = row.getCell(idxAG).getStringCellValue();
-                    if (row.getCell(idxAH) != null) deliveryCompleteDate = row.getCell(idxAH).getStringCellValue();
-                    if (row.getCell(idxAI) != null) confirmationPurchaseDate = row.getCell(idxAI).getStringCellValue();
-                    if (row.getCell(idxAJ) != null) pccc = row.getCell(idxAJ).getStringCellValue();
-                    if (row.getCell(idxAK) != null)
-                        buyerPhoneNumForCustomsClearance = row.getCell(idxAK).getStringCellValue();
-                    if (row.getCell(idxAL) != null) etc = row.getCell(idxAL).getStringCellValue();
-                    if (row.getCell(idxAM) != null) paymentLocation = row.getCell(idxAM).getStringCellValue();
-
-                    coupangData.setNum(thisNum);
-                    coupangData.setShippingNum(shippingNum);
-                    coupangData.setOrderNum(orderNum);
-                    coupangData.setCourier(courier);
-                    coupangData.setWaybillNum(waybillNum);
-                    coupangData.setSeparateDelivery(separateDelivery);
-                    coupangData.setSeparateExpectedDeliveryDate(separateExpectedDeliveryDate);
-                    coupangData.setExpectedDeliveryDate(expectedDeliveryDate);
-                    coupangData.setDeliveryDate(deliveryDate);
-                    coupangData.setOrderDate(orderDate);
-                    coupangData.setProductName(displayedProductName);
-                    coupangData.setOptionName(firstOptionName);
-                    if (quantity == 1) coupangData.setDisplayedProductName(displayedProductName);
-                    else coupangData.setDisplayedProductName(displayedProductName + " (" + quantity + "개)");
-                    coupangData.setDisplayedProductId(displayedProductId);
-                    coupangData.setOptionId(optionId);
-                    coupangData.setFirstOptionName(firstOptionName);
-                    coupangData.setProductCode(productCode);
-                    coupangData.setBarcode(barcode);
-                    coupangData.setPayment(payment);
-                    coupangData.setDeliveryFeeFlag(deliveryFeeFlag);
-                    coupangData.setDeliveryFee(deliveryFee);
-                    coupangData.setAdditionalDeliveryFee(additionalDeliveryFee);
-                    coupangData.setQuantity(quantity);
-                    coupangData.setUnitPrice(unitPrice);
-                    coupangData.setCustomerName(customerName);
-                    coupangData.setCustomerEmail(customerEmail);
-                    coupangData.setCustomerPhone(customerPhone);
-                    coupangData.setReceiverName(receiverName);
-                    coupangData.setReceiverPhone(processPhone(receiverPhone));
-                    coupangData.setPostNum(postNum);
-                    coupangData.setReceiverAddress(receiverAddress);
-                    coupangData.setDeliveryMessage(deliveryMessage);
-                    coupangData.setAdditionalMessagePerItem(additionalMessagePerItem);
-                    coupangData.setOrdererAdditionalMessage(ordererAdditionalMessage);
-                    coupangData.setDeliveryCompleteDate(deliveryCompleteDate);
-                    coupangData.setConfirmationPurchaseDate(confirmationPurchaseDate);
-                    coupangData.setPccc(pccc);
-                    coupangData.setBuyerPhoneNumForCustomsClearance(buyerPhoneNumForCustomsClearance);
-                    coupangData.setEtc(etc);
-                    coupangData.setPaymentLocation(paymentLocation);
-
-                    answer.add(coupangData);
-                }
-            }
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException("운송장 번호 입력을 위해 쿠팡 주문 목록을 읽던 도중 에러가 발생했습니다.");
-        }
-
-        return answer;
+    private String getTrackingNumberKey(String receiverName, String phone) {
+        return receiverName + "_" + phone.replace("-", "");
     }
 
     /**
-     * 운송장 번호 입력을 위해 네이버 주문 엑셀을 읽고 파싱한다.
+     * 운송장 번호 입력을 위해 주문서 엑셀 파일 읽어 매핑
      * @param file
+     * @param shopCode
      * @return
      */
-    private List<NaverColumnDto> readNaverOrderExcelToEnterTrackingNumber(File file) {
-        List<NaverColumnDto> answer = new ArrayList<>();
+    private Map<String, String> mappingOrderExcelToEnterTrackingNumber(File file, ShopCode shopCode) {
+        Map<String, String> map = new HashMap<>();
+        int keyColumnIndex = shopCode.getKeyColumnIndex();
+        int receiverNameColumnIndex = -1;
+        int receiverPhoneColumnIndex = -1;
+
 
         try (XSSFWorkbook workbook = excelReader.readXlsxFile(file)) {
             XSSFSheet sheet = workbook.getSheetAt(0); // 해당 엑셀파일의 시트수
-            int rows = sheet.getPhysicalNumberOfRows(); // 해당 시트의 행의 개수
+            Row firstRow = sheet.getRow(0);
 
-            // 파싱
-            for (int rowIdx = 2; rowIdx < rows; rowIdx++) {
-                XSSFRow row = sheet.getRow(rowIdx); // 각 행을 읽어온다
-                NaverColumnDto naverData = new NaverColumnDto();
-
-                if (row != null) {
-                    int cells = row.getPhysicalNumberOfCells();
-
-                    String productOrderNum = "";
-                    // 주문번호
-                    String orderNum = "";
-                    // 배송방법
-                    String shippingMethod = "";
-                    // 택배사
-                    String courier = "";
-                    // 송장번호
-                    String waybillNum = "";
-                    // 발송일
-                    String shippingDate = "";
-                    // 수취인명
-                    String receiverName = "";
-                    // 상품명
-                    String productName = "";
-                    // 옵션정보
-                    String optionInfo = "";
-                    // 수량
-                    Integer quantity = null;
-                    // 배송비 형태
-                    String shippingCostForm = "";
-                    // 수취인연락처1
-                    String receiverPhone1 = "";
-                    // 배송지
-                    String receiverAddress = "";
-                    // 배송메세지
-                    String deliveryMessage = "";
-                    // 출고지
-                    String shipFrom = "";
-                    // 결제수단
-                    String methodOfPayment = "";
-                    // 수수료 과금구분
-                    String feeChargingCategory = "";
-                    // 수수료결제방식
-                    String feePaymentMethod = "";
-                    // 결제수수료
-                    Integer paymentFee = null;
-                    // 매출연동 수수료
-                    Integer salesLinkageFee = null;
-                    // 정산예정금액
-                    Integer estimatedTotalAmount = null;
-                    // 유입경로
-                    String channel = "";
-                    // 구매자 주민등록번호
-                    String buyerSSN = "";
-                    // 개인통관고유부호
-                    String pccc = "";
-                    // 주문일시
-                    String orderDateTime = "";
-                    // 1년 주문건수
-                    Integer numOfOrdersPerYear = null;
-                    // 구매자ID
-                    String buyerId = "";
-                    // 구매자명
-                    String buyerName = "";
-                    // 결제일
-                    String paymentDate = "";
-                    // 상품종류
-                    String productType = "";
-                    // 주문세부상태
-                    String orderDetailStatus = "";
-                    // 주문상태
-                    String orderStatus = "";
-                    // 상품번호
-                    String itemNum = "";
-                    // 배송속성
-                    String deliveryProperty = "";
-                    // 배송희망일
-                    String wantDeliveryDate = "";
-                    // (수취인연락처1)
-                    String _receiverPhone1 = "";
-                    // (수취인연락처2)
-                    String _receiverPhone2 = "";
-                    // (우편번호)
-                    String zipcode = "";
-                    // (기본주소)
-                    String receiverAddress1 = "";
-                    // (상세주소)
-                    String receiverAddress2 = "";
-                    // (구매자연락처)
-                    String buyerPhone = "";
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-                    TimeZone tz = TimeZone.getTimeZone("Asia/Seoul");
-                    sdf.setTimeZone(tz);
-
-                    if (row.getCell(0) != null) productOrderNum = row.getCell(0).getStringCellValue();
-                    if (row.getCell(1) != null) orderNum = row.getCell(1).getStringCellValue();
-                    if (row.getCell(2) != null) shippingMethod = row.getCell(2).getStringCellValue();
-                    if (row.getCell(3) != null) courier = row.getCell(3).getStringCellValue();
-                    if (row.getCell(4) != null) waybillNum = row.getCell(4).getStringCellValue();
-                    if (row.getCell(5) != null) shippingDate = sdf.format(row.getCell(5).getDateCellValue());
-                    if (row.getCell(6) != null) receiverName = row.getCell(6).getStringCellValue();
-                    if (row.getCell(7) != null) productName = row.getCell(7).getStringCellValue();
-                    if (row.getCell(8) != null) optionInfo = row.getCell(8).getStringCellValue();
-                    if (row.getCell(9) != null) quantity = (int) row.getCell(9).getNumericCellValue();
-                    if (row.getCell(10) != null) shippingCostForm = row.getCell(10).getStringCellValue();
-                    if (row.getCell(11) != null) receiverPhone1 = row.getCell(11).getStringCellValue();
-                    if (row.getCell(12) != null) receiverAddress = row.getCell(12).getStringCellValue();
-                    if (row.getCell(13) != null) deliveryMessage = row.getCell(13).getStringCellValue();
-                    if (row.getCell(14) != null) shipFrom = row.getCell(14).getStringCellValue();
-                    if (row.getCell(15) != null) methodOfPayment = row.getCell(15).getStringCellValue();
-                    if (row.getCell(16) != null) feeChargingCategory = row.getCell(16).getStringCellValue();
-                    if (row.getCell(17) != null) feePaymentMethod = row.getCell(17).getStringCellValue();
-                    if (row.getCell(18) != null) paymentFee = (int) row.getCell(18).getNumericCellValue();
-                    if (row.getCell(19) != null) salesLinkageFee = (int) row.getCell(19).getNumericCellValue();
-                    if (row.getCell(20) != null) estimatedTotalAmount = (int) row.getCell(20).getNumericCellValue();
-                    if (row.getCell(21) != null) channel = row.getCell(21).getStringCellValue();
-                    if (row.getCell(22) != null) buyerSSN = row.getCell(22).getStringCellValue();
-                    if (row.getCell(23) != null) pccc = row.getCell(23).getStringCellValue();
-                    if (row.getCell(24) != null) orderDateTime = sdf.format(row.getCell(24).getDateCellValue());
-                    if (row.getCell(25) != null) numOfOrdersPerYear = (int) row.getCell(25).getNumericCellValue();
-                    if (row.getCell(26) != null) buyerId = row.getCell(26).getStringCellValue();
-                    if (row.getCell(27) != null) buyerName = row.getCell(27).getStringCellValue();
-                    if (row.getCell(28) != null) paymentDate = sdf.format(row.getCell(28).getDateCellValue());
-                    if (row.getCell(29) != null) productType = row.getCell(29).getStringCellValue();
-                    if (row.getCell(30) != null) orderDetailStatus = row.getCell(30).getStringCellValue();
-                    if (row.getCell(31) != null) orderStatus = row.getCell(31).getStringCellValue();
-                    if (row.getCell(32) != null) itemNum = row.getCell(32).getStringCellValue();
-                    if (row.getCell(33) != null) deliveryProperty = row.getCell(33).getStringCellValue();
-                    if (row.getCell(34) != null) wantDeliveryDate = row.getCell(34).getStringCellValue();
-                    if (row.getCell(35) != null) _receiverPhone1 = row.getCell(35).getStringCellValue();
-                    if (row.getCell(36) != null) _receiverPhone2 = row.getCell(36).getStringCellValue();
-                    if (row.getCell(37) != null) zipcode = row.getCell(37).getStringCellValue();
-                    if (row.getCell(38) != null) receiverAddress1 = row.getCell(38).getStringCellValue();
-                    if (row.getCell(39) != null) receiverAddress2 = row.getCell(39).getStringCellValue();
-                    if (row.getCell(40) != null) buyerPhone = row.getCell(40).getStringCellValue();
-
-                    receiverPhone1 = processPhone(receiverPhone1);
-
-                    naverData.setProductOrderNum(productOrderNum);
-                    naverData.setProductName(productName);
-                    naverData.setOrderNum(orderNum);
-                    naverData.setShippingMethod(shippingMethod);
-                    naverData.setCourier(courier);
-                    naverData.setWaybillNum(waybillNum);
-                    naverData.setShippingDate(shippingDate);
-                    naverData.setReceiverName(receiverName);
-                    naverData.setProductName(productName);
-                    naverData.setOptionInfo(optionInfo);
-                    naverData.setQuantity(quantity);
-                    naverData.setShippingCostForm(shippingCostForm);
-                    naverData.setReceiverPhone1(receiverPhone1);
-                    naverData.setReceiverAddress(receiverAddress);
-                    naverData.setDeliveryMessage(deliveryMessage);
-                    naverData.setShipFrom(shipFrom);
-                    naverData.setMethodOfPayment(methodOfPayment);
-                    naverData.setFeeChargingCategory(feeChargingCategory);
-                    naverData.setFeePaymentMethod(feePaymentMethod);
-                    naverData.setPaymentFee(paymentFee);
-                    naverData.setSalesLinkageFee(salesLinkageFee);
-                    naverData.setEstimatedTotalAmount(estimatedTotalAmount);
-                    naverData.setChannel(channel);
-                    naverData.setBuyerSSN(buyerSSN);
-                    naverData.setPccc(pccc);
-                    naverData.setOrderDateTime(orderDateTime);
-                    naverData.setNumOfOrdersPerYear(numOfOrdersPerYear);
-                    naverData.setBuyerId(buyerId);
-                    naverData.setPaymentDate(paymentDate);
-                    naverData.setProductType(productType);
-                    naverData.setOrderDetailStatus(orderDetailStatus);
-                    naverData.setOrderStatus(orderStatus);
-                    naverData.setItemNum(itemNum);
-                    naverData.setDeliveryProperty(deliveryProperty);
-                    naverData.setWantDeliveryDate(wantDeliveryDate);
-                    naverData.set_receiverPhone1(_receiverPhone1);
-                    naverData.set_receiverPhone2(_receiverPhone2);
-                    naverData.setZipcode(zipcode);
-                    naverData.setReceiverAddress1(receiverAddress1);
-                    naverData.setReceiverAddress2(receiverAddress2);
-                    naverData.setBuyerPhone(buyerPhone);
-
-                    answer.add(naverData);
+            for (Cell headerCell : firstRow) {
+                if (shopCode == ShopCode.COUPANG) {
+                    if (excelReader.getCellValueAsString(headerCell).equals("수취인이름")) {
+                        receiverNameColumnIndex = headerCell.getColumnIndex();
+                    }
+                    if (excelReader.getCellValueAsString(headerCell).equals("수취인전화번호")) {
+                        receiverPhoneColumnIndex = headerCell.getColumnIndex();
+                    }
+                } else if (shopCode == ShopCode.NAVER) {
+                    if (excelReader.getCellValueAsString(headerCell).equals("수취인명")) {
+                        receiverNameColumnIndex = headerCell.getColumnIndex();
+                    }
+                    if (excelReader.getCellValueAsString(headerCell).equals("수취인연락처1")) {
+                        receiverPhoneColumnIndex = headerCell.getColumnIndex();
+                    }
                 }
             }
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException("운송장 번호 입력을 위해 네이버 주문 목록을 읽던 도중 에러가 발생했습니다.");
-        }
-        return answer;
 
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0) {
+                    continue;
+                }
+
+                map.put(excelReader.getCellValueAsString(row.getCell(keyColumnIndex))
+                        , getTrackingNumberKey(
+                                excelReader.getCellValueAsString(row.getCell(receiverNameColumnIndex))
+                                , excelReader.getCellValueAsString(row.getCell(receiverPhoneColumnIndex))
+                        )
+                );
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+            throw new RuntimeException("주문서 파일을 읽는 도중 문제가 발생했습니다.");
+        }
+
+        return map;
     }
 
     /**
-     * 운송장 번호 입력을 위해 CNPlus에서 다운로드 받은 운송장 번호 엑셀을 읽고 파싱한다.
-     * 수취인명 + 수취인 번호를 키로 함.
+     * 운송장 번호 입력을 위해 CNPlus에서 다운로드 받은 운송장 번호 엑셀을 읽고 키 : 운송장 번호 매핑한 맵을 리턴
      * @param file
      * @return
      */
-    private HashMap<String, String> readCnpTrackingNumberExcelFile(File file) {
-        HashMap<String, String> answer = new HashMap<>();
+    private Map<String, String> readCnpTrackingNumberExcelFile(File file) {
+        Map<String, String> answer = new HashMap<>();
 
-        try (HSSFWorkbook workbook = excelReader.readXlsFile(file)) {
-            HSSFSheet sheet = workbook.getSheetAt(0); // 해당 엑셀파일의 시트수
-            int rows = sheet.getPhysicalNumberOfRows(); // 해당 시트의 행의 개수
-//		System.out.println(rows);
+        try (XSSFWorkbook workbook = excelReader.readXlsxFile(file)) {
+            XSSFSheet sheet = workbook.getSheetAt(0); // 해당 엑셀파일의 시트수
+            Row headerRow = sheet.getRow(0);
 
-            // 파싱
-            for (int rowIdx = 1; rowIdx < rows; rowIdx++) {
-                HSSFRow row = sheet.getRow(rowIdx); // 각 행을 읽어온다
-                CnpOutputDto cnpOutput = new CnpOutputDto();
+            int trackingNumberColumnIndex = -1;
+            int receiverNameColumnIndex = -1;
+            int receiverPhoneNumberColumnIndex = -1;
 
 
-                if (row != null) {
-                    // 셀에 담겨있는 값을 읽는다.
-                    String waybillNum = row.getCell(7).getStringCellValue();
-                    String receiverName = row.getCell(20).getStringCellValue();
-                    String receiverPhone = row.getCell(21).getStringCellValue();
-
-                    answer.put(receiverName + receiverPhone, waybillNum);
+            for (Cell headerCell : headerRow) {
+                if (excelReader.getCellValueAsString(headerCell).equals("운송장번호")) {
+                    trackingNumberColumnIndex = headerCell.getColumnIndex();
+                }
+                if (excelReader.getCellValueAsString(headerCell).equals("받는분")) {
+                    receiverNameColumnIndex = headerCell.getColumnIndex();
+                }
+                if (excelReader.getCellValueAsString(headerCell).equals("받는분전화번호")) {
+                    receiverPhoneNumberColumnIndex = headerCell.getColumnIndex();
                 }
             }
-        } catch (IOException e) {
+
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0) {
+                    continue;
+                }
+
+                answer.put(getTrackingNumberKey(
+                                excelReader.getCellValueAsString(row.getCell(receiverNameColumnIndex)),
+                                excelReader.getCellValueAsString(row.getCell(receiverPhoneNumberColumnIndex))
+                        )
+                        , excelReader.getCellValueAsString(row.getCell(trackingNumberColumnIndex)));
+            }
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("CNPlus에서 내려받은 운송장 번호 엑셀 파일을 읽는 중 에러가 발생했습니다.");
         }
@@ -1219,12 +859,14 @@ public class ExcelTransformService {
     }
 
 
-    private void enterTrackingNumberOnOrderExcel(File orderExcel, List<String> trackingNumberList, ShopCode shopCode) {
-        File xlsxFile = new File(LocalDateTime.now().format(formatter) + "_쿠팡 운송장 업로드.xlsx");
+    private void enterTrackingNumberOnOrderExcel(File orderExcel, Map<String, String> orderMapping, Map<String, String> trackingNumberMapping, ShopCode shopCode) {
+//        String tempFileName = String.format("%s-%s 운송장 업로드.xlsx", LocalDateTime.now().format(formatter), shopCode.getValue());
+
         int headerIndex = shopCode == ShopCode.COUPANG ? 0 : shopCode == ShopCode.NAVER ? 1 : 0;
 
         try (XSSFWorkbook xlsxWb = excelReader.readXlsxFile(orderExcel);
-             FileOutputStream fos = new FileOutputStream(xlsxFile)) {
+             FileOutputStream fos = new FileOutputStream(orderExcel)) {
+
             XSSFSheet sheet = xlsxWb.getSheetAt(0);
             XSSFRow headerRow = sheet.getRow(headerIndex);
 
@@ -1232,9 +874,18 @@ public class ExcelTransformService {
 
             for (Cell cell : headerRow) {
                 String cellValue = excelReader.getCellValueAsString(cell);
-                if (cellValue.equals("운송장번호")) {
-                    trackingNumberColumnIndex = cell.getColumnIndex();
-                    break;
+
+                if (shopCode == ShopCode.COUPANG) {
+                    if (cellValue.equals("운송장번호")) {
+                        trackingNumberColumnIndex = cell.getColumnIndex();
+                        break;
+                    }
+                }
+                else if (shopCode == ShopCode.NAVER) {
+                    if (cellValue.equals("송장번호")) {
+                        trackingNumberColumnIndex = cell.getColumnIndex();
+                        break;
+                    }
                 }
             }
 
@@ -1247,12 +898,18 @@ public class ExcelTransformService {
                 if (row.getRowNum() == headerIndex) {
                     continue;
                 }
-                Cell trackingNumberBodyCell = row.getCell(trackingNumberColumnIndex);
-                trackingNumberBodyCell.setCellValue(trackingNumberList.get(row.getRowNum() - 1));
+
+                String orderDeliveryKey = excelReader.getCellValueAsString(row.getCell(shopCode.getKeyColumnIndex()));
+                String trackingNumberKey = orderMapping.get(orderDeliveryKey);
+                String trackingNumber = trackingNumberMapping.get(trackingNumberKey);
+
+                if (StringUtils.hasText(trackingNumber)) {
+                    row.getCell(trackingNumberColumnIndex).setCellValue(trackingNumber);
+                }
             }
 
             xlsxWb.write(fos);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("운송장 번호 입력을 위해 주문 엑셀을 읽어오는 도중 에러가 발생했습니다.");
         }
@@ -1291,20 +948,10 @@ public class ExcelTransformService {
             orderExcelTempFile = fileManager.createFileWithMultipartFile(orderExcelMultiFile);
             trackingNumberExcelTempFile = fileManager.createFileWithMultipartFile(trackingNumberMultipartFile);
 
-            List<String> trackingNumbers = new ArrayList<>();
-            if (shopCode == ShopCode.COUPANG) {
-                List<CoupangColumnDto> coupangLs = readCoupangOrderExcelToEnterTrackingNumber(orderExcelTempFile);
-                HashMap<String, String> customerToWaybill = readCnpTrackingNumberExcelFile(trackingNumberExcelTempFile);
+            Map<String, String> orderMapping = mappingOrderExcelToEnterTrackingNumber(orderExcelTempFile, shopCode);
+            Map<String, String> trackingNumberMapping = readCnpTrackingNumberExcelFile(trackingNumberExcelTempFile);
 
-                trackingNumbers = coupangLs.stream().map(coupangData -> customerToWaybill.get(coupangData.getReceiverName() + coupangData.getReceiverPhone())).toList();
-
-            } else if (shopCode == ShopCode.NAVER) {
-                List<NaverColumnDto> naverLs = readNaverOrderExcelToEnterTrackingNumber(orderExcelTempFile);
-                HashMap<String, String> customerToWaybill = readCnpTrackingNumberExcelFile(trackingNumberExcelTempFile);
-
-                trackingNumbers = naverLs.stream().map(naverData -> customerToWaybill.get(naverData.getReceiverName() + naverData.getReceiverPhone1())).toList();
-            }
-            enterTrackingNumberOnOrderExcel(orderExcelTempFile, trackingNumbers, shopCode);
+            enterTrackingNumberOnOrderExcel(orderExcelTempFile, orderMapping, trackingNumberMapping, shopCode);
 
             fileManager.download(
                     shopCode == ShopCode.COUPANG ? DownloadCode.COUPANG_TRACKING_NUMBER_INPUT
