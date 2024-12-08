@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,8 +24,8 @@ import java.util.zip.ZipOutputStream;
 @RequiredArgsConstructor
 public class FileManager {
 
-    @Getter
-    private final String TEMP_FILE_PATH = "/Users/kanghyuk/Desktop/2024/workspace/bdd-server/src/main/resources/temp";
+    @Value("${file.temp}")
+    private String tempFilePath;
 
     private final HttpServletResponse response;
 
@@ -46,11 +47,11 @@ public class FileManager {
                     "xlsx"
             ));
         }
-
+        response.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
     }
 
     public File createFileWithMultipartFile(MultipartFile multipartFile) {
-        String tempFilePath = multipartFile.getOriginalFilename() + File.separator + TEMP_FILE_PATH;
+        String tempFilePath = this.tempFilePath + File.separator + multipartFile.getOriginalFilename();
         File tempFile = new File(tempFilePath);
 
         try (InputStream is = multipartFile.getInputStream();
@@ -72,7 +73,7 @@ public class FileManager {
     }
 
     public File createTempFile(Workbook wb, String filePath) {
-        File xlsFile = new File(TEMP_FILE_PATH + File.separator + filePath);
+        File xlsFile = new File(tempFilePath + File.separator + filePath);
 
         try (FileOutputStream fileOut = new FileOutputStream(xlsFile)) {
             wb.write(fileOut);

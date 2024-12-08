@@ -9,14 +9,15 @@ cors:
     origins:
       http://localhost:63342,
       http://localhost:3000,
-      http://booroute.com,
-      https://booroute.com
+      http://bobdoduk.com,
+      https://bobdoduk.com
     headers:
       Origin,
       X-Requested-with,
       Accept,
       Authorization,
       Content-Type,
+      Content-Disposition,
       Credential-Token,
       Access-Token,
       Refresh-Token,
