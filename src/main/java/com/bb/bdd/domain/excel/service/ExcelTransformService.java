@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -61,11 +62,7 @@ public class ExcelTransformService {
     private static final ThreadLocal<Map<String, Integer>> threadLocalCoupangCountMap = ThreadLocal.withInitial(() -> null);
     private static final ThreadLocal<Map<String, Integer>> threadLocalNaverCountMap = ThreadLocal.withInitial(() -> null);
 
-    private void test() {
-        for (Entry<String, String> entry : coupangDict.entrySet()) {
-            System.out.println(entry.getKey() + " " + entry.getValue());
-        }
-    }
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
 
     /**
      * ====================================  공통  ========================================
@@ -79,7 +76,7 @@ public class ExcelTransformService {
      * @return
      */
     public File createCnpXls(File excelFile, ShopCode shopCode) {
-        String tempFileName = LocalDateTime.now() + "_" + shopCode.getValue() + "- Cnp.xls";
+        String tempFileName = LocalDateTime.now().format(formatter) + "_" + shopCode.getValue() + "- Cnp.xls";
 
         // cnp input list
         List<CnpInputDto> cnpInputLs =
@@ -152,10 +149,10 @@ public class ExcelTransformService {
     public File createCountXlsx(File excelFile, ShopCode shopCode) {
         try (XSSFWorkbook xlsxWb = new XSSFWorkbook()) {
             List<Pair> countLs = shopCode == ShopCode.COUPANG ? coupangCountList() : shopCode == ShopCode.NAVER ? naverCountList() : null;
-            String tempFileName = LocalDateTime.now() + "_" + shopCode.getValue() + " 판매량.xlsx";
+            String tempFileName = LocalDateTime.now().format(formatter) + "_" + shopCode.getValue() + " 판매량.xlsx";
 
             // sheet 생성
-            XSSFSheet sheet = xlsxWb.createSheet(LocalDateTime.now() + " 판매량");
+            XSSFSheet sheet = xlsxWb.createSheet(LocalDateTime.now().format(formatter) + " 판매량");
 
             // 스타일
             CellStyle menu = xlsxWb.createCellStyle();
@@ -1223,7 +1220,7 @@ public class ExcelTransformService {
 
 
     private void enterTrackingNumberOnOrderExcel(File orderExcel, List<String> trackingNumberList, ShopCode shopCode) {
-        File xlsxFile = new File(LocalDateTime.now() + "_쿠팡 운송장 업로드.xlsx");
+        File xlsxFile = new File(LocalDateTime.now().format(formatter) + "_쿠팡 운송장 업로드.xlsx");
         int headerIndex = shopCode == ShopCode.COUPANG ? 0 : shopCode == ShopCode.NAVER ? 1 : 0;
 
         try (XSSFWorkbook xlsxWb = excelReader.readXlsxFile(orderExcel);
