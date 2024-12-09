@@ -53,6 +53,10 @@ public class ExcelReader {
     }
 
     public String getCellValueAsString(Cell cell) {
+        if (cell == null) {
+            return "";
+        }
+
         return switch (cell.getCellType()) {
             case STRING -> cell.getStringCellValue();
             case NUMERIC -> String.valueOf(cell.getNumericCellValue());
