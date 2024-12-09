@@ -34,6 +34,8 @@ public class NaverColumnDto {
 	private String receiverPhone1;
 	// 배송지
 	private String receiverAddress;
+    // 상세배송지
+    private String receiverAddressDetail;
 	// 배송메세지
 	private String deliveryMessage;
 	// 출고지

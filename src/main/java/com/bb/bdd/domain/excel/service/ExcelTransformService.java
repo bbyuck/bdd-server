@@ -574,6 +574,7 @@ public class ExcelTransformService {
             int receiverNameIdx = -1;
             int receiverPhoneIdx = -1;
             int receiverAddressIdx = -1;
+            int receiverAddressDetailIdx = -1;
             int productNameIdx = -1;
             int optionIdx = -1;
             int etcIdx = -1;
@@ -587,6 +588,7 @@ public class ExcelTransformService {
                 if (menu.equals("수취인명")) receiverNameIdx = colIdx;
                 if (menu.equals("수취인연락처1")) receiverPhoneIdx = colIdx;
                 if (menu.equals("기본배송지")) receiverAddressIdx = colIdx;
+                if (menu.equals("상세배송지")) receiverAddressDetailIdx = colIdx;
                 if (menu.equals("상품명")) productNameIdx = colIdx;
                 if (menu.equals("옵션정보")) optionIdx = colIdx;
                 if (menu.equals("배송메세지")) etcIdx = colIdx;
@@ -659,6 +661,8 @@ public class ExcelTransformService {
                     // 수취인  주소
                     naverData.setReceiverAddress(row.getCell(receiverAddressIdx).getStringCellValue());
 
+                    naverData.setReceiverAddressDetail(row.getCell(receiverAddressDetailIdx).getStringCellValue());
+
                     // 상품명
                     String itemName = row.getCell(productNameIdx).getStringCellValue();
                     String tag = "네 - ";
@@ -704,7 +708,7 @@ public class ExcelTransformService {
                 CnpInputDto cnpInput = new CnpInputDto();
                 cnpInput.setReceiverName(naverData.getReceiverName());
                 cnpInput.setReceiverPhone(naverData.getReceiverPhone1());
-                cnpInput.setReceiverAddress(naverData.getReceiverAddress());
+                cnpInput.setReceiverAddress(naverData.getReceiverAddress() + " " + naverData.getReceiverAddressDetail());
                 cnpInput.setOrderContents(naverData.getProductName());
                 cnpInput.setRemark(naverData.getDeliveryMessage());
 
