@@ -962,6 +962,9 @@ public class ExcelTransformService {
                             : shopCode == ShopCode.NAVER ? DownloadCode.NAVER_TRACKING_NUMBER_INPUT
                             : null,
                     orderExcelTempFile);
+        } catch(Exception e) {
+            log.error(e.getMessage(), e);
+            throw new RuntimeException("운송장 번호 입력 중 에러가 발생했습니다.");
         } finally {
             orderExcelTempFile.delete();
             trackingNumberExcelTempFile.delete();
