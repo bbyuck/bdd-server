@@ -661,7 +661,7 @@ public class ExcelTransformService {
                     // 수취인  주소
                     naverData.setReceiverAddress(row.getCell(receiverAddressIdx).getStringCellValue());
 
-                    naverData.setReceiverAddressDetail(row.getCell(receiverAddressDetailIdx).getStringCellValue());
+                    naverData.setReceiverAddressDetail(excelReader.getCellValueAsString(row.getCell(receiverAddressDetailIdx)));
 
                     // 상품명
                     String itemName = row.getCell(productNameIdx).getStringCellValue();
