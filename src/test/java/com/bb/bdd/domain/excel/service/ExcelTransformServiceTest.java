@@ -21,7 +21,7 @@ class ExcelTransformServiceTest {
     @DisplayName("[쿠팡] 주문 목록 엑셀 파일 -> CNP 업로드용 xls 파일 생성 테스트")
     public void createCoupangCnpXlsTest() throws Exception {
         // given
-        ClassPathResource resource = new ClassPathResource("sample/coupang_sample.xlsx");
+        ClassPathResource resource = new ClassPathResource("C:\\Users\\User\\Downloads\\de.xlsx");
         File inputFile = resource.getFile();
 
         // when

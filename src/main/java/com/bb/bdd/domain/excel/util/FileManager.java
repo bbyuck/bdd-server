@@ -85,10 +85,14 @@ public class FileManager {
         return xlsFile;
     }
 
-    public void download(DownloadCode downloadCode, File... files) {
-        setDownloadResponseHeader(downloadCode, files.length > 1);
+    public File createTempFile(String extension) {
+        return new File(tempFilePath + File.separator + System.currentTimeMillis() + "." + extension);
+    }
 
+    public void download(DownloadCode downloadCode, File... files) {
         boolean isMulti = files.length > 1;
+
+        setDownloadResponseHeader(downloadCode, isMulti);
 
         if (isMulti) {
             compressAndDownloadStreaming(files);

@@ -1,7 +1,6 @@
 package com.bb.bdd.domain.excel.service;
 
 import com.bb.bdd.domain.excel.DeliveryCompanyCode;
-import com.bb.bdd.domain.excel.DownloadCode;
 import com.bb.bdd.domain.excel.ShopCode;
 import com.bb.bdd.domain.excel.dto.CnpInputDto;
 import com.bb.bdd.domain.excel.dto.CoupangColumnDto;
@@ -18,6 +17,7 @@ import org.apache.poi.hssf.usermodel.HSSFSheet;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
@@ -853,11 +853,11 @@ public class ExcelTransformService {
     }
 
 
-    private void enterTrackingNumberOnOrderExcel(File orderExcel, Map<String, String> orderMapping, Map<String, String> trackingNumberMapping, ShopCode shopCode) {
-//        String tempFileName = String.format("%s-%s 운송장 업로드.xlsx", LocalDateTime.now().format(formatter), shopCode.getValue());
+    private File enterTrackingNumberOnOrderExcel(File orderExcel, Map<String, String> orderMapping, Map<String, String> trackingNumberMapping, ShopCode shopCode) {
+        File tempFile = fileManager.createTempFile("xlsx");
 
         try (XSSFWorkbook xlsxWb = excelReader.readXlsxFile(orderExcel);
-             FileOutputStream fos = new FileOutputStream(orderExcel)) {
+             FileOutputStream fos = new FileOutputStream(tempFile)) {
 
             XSSFSheet sheet = xlsxWb.getSheetAt(0);
             XSSFRow headerRow = sheet.getRow(shopCode.getHeaderRowIndex());
@@ -867,16 +867,9 @@ public class ExcelTransformService {
             for (Cell cell : headerRow) {
                 String cellValue = excelReader.getCellValueAsString(cell);
 
-                if (shopCode == ShopCode.COUPANG) {
-                    if (cellValue.equals("운송장번호")) {
-                        trackingNumberColumnIndex = cell.getColumnIndex();
-                        break;
-                    }
-                } else if (shopCode == ShopCode.NAVER) {
-                    if (cellValue.equals("송장번호")) {
-                        trackingNumberColumnIndex = cell.getColumnIndex();
-                        break;
-                    }
+                if (shopCode.getTrackingNumberColumnName().equals(cellValue)) {
+                    trackingNumberColumnIndex = cell.getColumnIndex();
+                    break;
                 }
             }
 
@@ -895,8 +888,16 @@ public class ExcelTransformService {
                 String trackingNumber = trackingNumberMapping.get(trackingNumberKey);
 
                 if (StringUtils.hasText(trackingNumber)) {
-                    row.getCell(trackingNumberColumnIndex).setCellValue(trackingNumber);
+                    Cell trackingNumberCell = row.getCell(trackingNumberColumnIndex);
+
+                    /**
+                     * cell 초기화
+                     */
+                    row.createCell(trackingNumberColumnIndex);
+                    trackingNumberCell.setCellValue(trackingNumber);
+                    trackingNumberCell.setCellStyle(row.getCell(shopCode.getKeyColumnIndex()).getCellStyle());
                 }
+                log.debug("{}", row.getCell(trackingNumberColumnIndex));
             }
 
             xlsxWb.write(fos);
@@ -904,6 +905,8 @@ public class ExcelTransformService {
             log.error(e.getMessage(), e);
             throw new RuntimeException("운송장 번호 입력을 위해 주문 엑셀을 읽어오는 도중 에러가 발생했습니다.");
         }
+
+        return tempFile;
     }
 
 
@@ -935,6 +938,7 @@ public class ExcelTransformService {
     public void enterTrackingNumber(MultipartFile orderExcelMultiFile, MultipartFile trackingNumberMultipartFile, ShopCode shopCode, DeliveryCompanyCode deliveryCompanyCode) {
         File orderExcelTempFile = null;
         File trackingNumberExcelTempFile = null;
+        File outputFile = null;
         try {
             orderExcelTempFile = fileManager.createFileWithMultipartFile(orderExcelMultiFile);
             trackingNumberExcelTempFile = fileManager.createFileWithMultipartFile(trackingNumberMultipartFile);
@@ -942,15 +946,16 @@ public class ExcelTransformService {
             Map<String, String> orderMapping = mappingOrderExcelToEnterTrackingNumber(orderExcelTempFile, shopCode);
             Map<String, String> trackingNumberMapping = readCnpTrackingNumberExcelFile(trackingNumberExcelTempFile, deliveryCompanyCode);
 
-            enterTrackingNumberOnOrderExcel(orderExcelTempFile, orderMapping, trackingNumberMapping, shopCode);
+            outputFile = enterTrackingNumberOnOrderExcel(orderExcelTempFile, orderMapping, trackingNumberMapping, shopCode);
 
-            fileManager.download(shopCode.getTrackingNumberCode(), orderExcelTempFile);
+            fileManager.download(shopCode.getTrackingNumberCode(), outputFile);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("운송장 번호 입력 중 에러가 발생했습니다.");
         } finally {
             orderExcelTempFile.delete();
             trackingNumberExcelTempFile.delete();
+            outputFile.delete();
         }
     }
 }
