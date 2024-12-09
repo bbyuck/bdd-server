@@ -1,5 +1,6 @@
 package com.bb.bdd.domain.excel.service;
 
+import com.bb.bdd.domain.excel.DeliveryCompanyCode;
 import com.bb.bdd.domain.excel.DownloadCode;
 import com.bb.bdd.domain.excel.ShopCode;
 import com.bb.bdd.domain.excel.dto.CnpInputDto;
@@ -209,11 +210,7 @@ public class ExcelTransformService {
             cnpXlsTempFile = createCnpXls(tempExcelFile, shopCode);
             countXlsxTempFile = createCountXlsx(tempExcelFile, shopCode);
 
-            fileManager.download(
-                    shopCode == ShopCode.COUPANG ? DownloadCode.COUPANG_CNP
-                            : shopCode == ShopCode.NAVER ? DownloadCode.NAVER_CNP
-                            : null
-                    , cnpXlsTempFile, countXlsxTempFile);
+            fileManager.download(shopCode.getCnpCode(), cnpXlsTempFile, countXlsxTempFile);
         } finally {
             tempExcelFile.delete();
             cnpXlsTempFile.delete();
@@ -303,12 +300,10 @@ public class ExcelTransformService {
         Map<String, Integer> coupangCountMap = getCoupangCountMap();
 
         try (XSSFWorkbook workbook = excelReader.readXlsxFile(file)) {
-            XSSFSheet sheet = workbook.getSheetAt(0); // 해당 엑셀파일의 시트수
+            XSSFSheet sheet = workbook.getSheetAt(0); // 첫 시트
             int rows = sheet.getPhysicalNumberOfRows(); // 해당 시트의 행의 개수
-//		System.out.println(rows);
 
-            XSSFRow row = sheet.getRow(0); // 목록행 읽어오기
-            int cells = row.getPhysicalNumberOfCells();
+            XSSFRow headerRow = sheet.getRow(ShopCode.COUPANG.getHeaderRowIndex()); // 목록행 읽어오기
 
             int receiverNameIdx = -1;
             int receiverPhoneIdx = -1;
@@ -318,22 +313,23 @@ public class ExcelTransformService {
             int idIdx = -1;
             int quantityIdx = -1;
 
-            for (int colIdx = 0; colIdx < cells; colIdx++) {
-                XSSFCell cell = row.getCell(colIdx);
+            for (Cell cell : headerRow) {
                 String menu = cell.getStringCellValue();
-                if (menu.equals("구매수(수량)")) quantityIdx = colIdx;
-                if (menu.equals("묶음배송번호")) idIdx = colIdx;
-                if (menu.equals("수취인이름")) receiverNameIdx = colIdx;
-                if (menu.equals("수취인전화번호")) receiverPhoneIdx = colIdx;
-                if (menu.equals("수취인 주소")) receiverAddressIdx = colIdx;
-                if (menu.equals("노출상품명(옵션명)")) productNameIdx = colIdx;
-                if (menu.equals("배송메세지")) etcIdx = colIdx;
+                if (menu.equals("구매수(수량)")) quantityIdx = cell.getColumnIndex();
+                if (menu.equals("묶음배송번호")) idIdx = cell.getColumnIndex();
+                if (menu.equals("수취인이름")) receiverNameIdx = cell.getColumnIndex();
+                if (menu.equals("수취인전화번호")) receiverPhoneIdx = cell.getColumnIndex();
+                if (menu.equals("수취인 주소")) receiverAddressIdx = cell.getColumnIndex();
+                if (menu.equals("노출상품명(옵션명)")) productNameIdx = cell.getColumnIndex();
+                if (menu.equals("배송메세지")) etcIdx = cell.getColumnIndex();
             }
 
-
             // 파싱
-            for (int rowIdx = 1; rowIdx < rows; rowIdx++) {
-                row = sheet.getRow(rowIdx); // 각 행을 읽어온다
+            for (Row row : sheet) {
+                if (row.getRowNum() <= ShopCode.COUPANG.getHeaderRowIndex()) {
+                    continue;
+                }
+
                 CoupangColumnDto coupangData = new CoupangColumnDto();
                 CnpInputDto cnpInput = new CnpInputDto();
 
@@ -751,6 +747,7 @@ public class ExcelTransformService {
     /**
      * 운송장 번호 매핑을 위한 키를 생성
      * ${수취인명_수취인번호} 형태로 생성
+     *
      * @param receiverName
      * @param phone
      * @return
@@ -761,6 +758,7 @@ public class ExcelTransformService {
 
     /**
      * 운송장 번호 입력을 위해 주문서 엑셀 파일 읽어 매핑
+     *
      * @param file
      * @param shopCode
      * @return
@@ -774,28 +772,19 @@ public class ExcelTransformService {
 
         try (XSSFWorkbook workbook = excelReader.readXlsxFile(file)) {
             XSSFSheet sheet = workbook.getSheetAt(0); // 해당 엑셀파일의 시트수
-            Row firstRow = sheet.getRow(0);
+            Row headerRow = sheet.getRow(shopCode.getHeaderRowIndex());
 
-            for (Cell headerCell : firstRow) {
-                if (shopCode == ShopCode.COUPANG) {
-                    if (excelReader.getCellValueAsString(headerCell).equals("수취인이름")) {
-                        receiverNameColumnIndex = headerCell.getColumnIndex();
-                    }
-                    if (excelReader.getCellValueAsString(headerCell).equals("수취인전화번호")) {
-                        receiverPhoneColumnIndex = headerCell.getColumnIndex();
-                    }
-                } else if (shopCode == ShopCode.NAVER) {
-                    if (excelReader.getCellValueAsString(headerCell).equals("수취인명")) {
-                        receiverNameColumnIndex = headerCell.getColumnIndex();
-                    }
-                    if (excelReader.getCellValueAsString(headerCell).equals("수취인연락처1")) {
-                        receiverPhoneColumnIndex = headerCell.getColumnIndex();
-                    }
+            for (Cell headerCell : headerRow) {
+                if (excelReader.getCellValueAsString(headerCell).equals(shopCode.getReceiverNameColumnName())) {
+                    receiverNameColumnIndex = headerCell.getColumnIndex();
+                }
+                if (excelReader.getCellValueAsString(headerCell).equals(shopCode.getReceiverPhoneColumnName())) {
+                    receiverPhoneColumnIndex = headerCell.getColumnIndex();
                 }
             }
 
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) {
+                if (row.getRowNum() <= shopCode.getHeaderRowIndex()) {
                     continue;
                 }
 
@@ -816,41 +805,42 @@ public class ExcelTransformService {
 
     /**
      * 운송장 번호 입력을 위해 CNPlus에서 다운로드 받은 운송장 번호 엑셀을 읽고 키 : 운송장 번호 매핑한 맵을 리턴
+     *
      * @param file
      * @return
      */
-    private Map<String, String> readCnpTrackingNumberExcelFile(File file) {
+    private Map<String, String> readCnpTrackingNumberExcelFile(File file, DeliveryCompanyCode deliveryCompanyCode) {
         Map<String, String> answer = new HashMap<>();
 
         try (XSSFWorkbook workbook = excelReader.readXlsxFile(file)) {
             XSSFSheet sheet = workbook.getSheetAt(0); // 해당 엑셀파일의 시트수
-            Row headerRow = sheet.getRow(0);
+            Row headerRow = sheet.getRow(deliveryCompanyCode.getHeaderRowIndex());
 
             int trackingNumberColumnIndex = -1;
             int receiverNameColumnIndex = -1;
-            int receiverPhoneNumberColumnIndex = -1;
+            int receiverPhoneColumnIndex = -1;
 
 
             for (Cell headerCell : headerRow) {
-                if (excelReader.getCellValueAsString(headerCell).equals("운송장번호")) {
+                if (excelReader.getCellValueAsString(headerCell).equals(deliveryCompanyCode.getTrackingNumberColumnName())) {
                     trackingNumberColumnIndex = headerCell.getColumnIndex();
                 }
-                if (excelReader.getCellValueAsString(headerCell).equals("받는분")) {
+                if (excelReader.getCellValueAsString(headerCell).equals(deliveryCompanyCode.getReceiverNameColumnName())) {
                     receiverNameColumnIndex = headerCell.getColumnIndex();
                 }
-                if (excelReader.getCellValueAsString(headerCell).equals("받는분전화번호")) {
-                    receiverPhoneNumberColumnIndex = headerCell.getColumnIndex();
+                if (excelReader.getCellValueAsString(headerCell).equals(deliveryCompanyCode.getReceiverPhoneColumnName())) {
+                    receiverPhoneColumnIndex = headerCell.getColumnIndex();
                 }
             }
 
             for (Row row : sheet) {
-                if (row.getRowNum() == 0) {
+                if (row.getRowNum() <= 0) {
                     continue;
                 }
 
                 answer.put(getTrackingNumberKey(
                                 excelReader.getCellValueAsString(row.getCell(receiverNameColumnIndex)),
-                                excelReader.getCellValueAsString(row.getCell(receiverPhoneNumberColumnIndex))
+                                excelReader.getCellValueAsString(row.getCell(receiverPhoneColumnIndex))
                         )
                         , excelReader.getCellValueAsString(row.getCell(trackingNumberColumnIndex)));
             }
@@ -866,13 +856,11 @@ public class ExcelTransformService {
     private void enterTrackingNumberOnOrderExcel(File orderExcel, Map<String, String> orderMapping, Map<String, String> trackingNumberMapping, ShopCode shopCode) {
 //        String tempFileName = String.format("%s-%s 운송장 업로드.xlsx", LocalDateTime.now().format(formatter), shopCode.getValue());
 
-        int headerIndex = shopCode == ShopCode.COUPANG ? 0 : shopCode == ShopCode.NAVER ? 1 : 0;
-
         try (XSSFWorkbook xlsxWb = excelReader.readXlsxFile(orderExcel);
              FileOutputStream fos = new FileOutputStream(orderExcel)) {
 
             XSSFSheet sheet = xlsxWb.getSheetAt(0);
-            XSSFRow headerRow = sheet.getRow(headerIndex);
+            XSSFRow headerRow = sheet.getRow(shopCode.getHeaderRowIndex());
 
             int trackingNumberColumnIndex = -1;
 
@@ -884,8 +872,7 @@ public class ExcelTransformService {
                         trackingNumberColumnIndex = cell.getColumnIndex();
                         break;
                     }
-                }
-                else if (shopCode == ShopCode.NAVER) {
+                } else if (shopCode == ShopCode.NAVER) {
                     if (cellValue.equals("송장번호")) {
                         trackingNumberColumnIndex = cell.getColumnIndex();
                         break;
@@ -899,7 +886,7 @@ public class ExcelTransformService {
             }
 
             for (Row row : sheet) {
-                if (row.getRowNum() == headerIndex) {
+                if (row.getRowNum() <= shopCode.getHeaderRowIndex()) {
                     continue;
                 }
 
@@ -945,7 +932,7 @@ public class ExcelTransformService {
      * @param trackingNumberMultipartFile
      * @param shopCode
      */
-    public void enterTrackingNumber(MultipartFile orderExcelMultiFile, MultipartFile trackingNumberMultipartFile, ShopCode shopCode) {
+    public void enterTrackingNumber(MultipartFile orderExcelMultiFile, MultipartFile trackingNumberMultipartFile, ShopCode shopCode, DeliveryCompanyCode deliveryCompanyCode) {
         File orderExcelTempFile = null;
         File trackingNumberExcelTempFile = null;
         try {
@@ -953,16 +940,12 @@ public class ExcelTransformService {
             trackingNumberExcelTempFile = fileManager.createFileWithMultipartFile(trackingNumberMultipartFile);
 
             Map<String, String> orderMapping = mappingOrderExcelToEnterTrackingNumber(orderExcelTempFile, shopCode);
-            Map<String, String> trackingNumberMapping = readCnpTrackingNumberExcelFile(trackingNumberExcelTempFile);
+            Map<String, String> trackingNumberMapping = readCnpTrackingNumberExcelFile(trackingNumberExcelTempFile, deliveryCompanyCode);
 
             enterTrackingNumberOnOrderExcel(orderExcelTempFile, orderMapping, trackingNumberMapping, shopCode);
 
-            fileManager.download(
-                    shopCode == ShopCode.COUPANG ? DownloadCode.COUPANG_TRACKING_NUMBER_INPUT
-                            : shopCode == ShopCode.NAVER ? DownloadCode.NAVER_TRACKING_NUMBER_INPUT
-                            : null,
-                    orderExcelTempFile);
-        } catch(Exception e) {
+            fileManager.download(shopCode.getTrackingNumberCode(), orderExcelTempFile);
+        } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException("운송장 번호 입력 중 에러가 발생했습니다.");
         } finally {

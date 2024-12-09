@@ -1,5 +1,6 @@
 package com.bb.bdd.domain.excel.controller;
 
+import com.bb.bdd.domain.excel.DeliveryCompanyCode;
 import com.bb.bdd.domain.excel.ShopCode;
 import com.bb.bdd.domain.excel.service.ExcelTransformService;
 import lombok.RequiredArgsConstructor;
@@ -38,11 +39,11 @@ public class ExcelTransformController {
 
     @PostMapping("coupang/tracking-number/enter")
     public void enterTrackingNumberCoupang(@RequestParam("order") MultipartFile orderExcelMultipartFile, @RequestParam("trackingNumber") MultipartFile trackingNumberMultipartFile) {
-        excelTransformService.enterTrackingNumber(orderExcelMultipartFile, trackingNumberMultipartFile, ShopCode.COUPANG);
+        excelTransformService.enterTrackingNumber(orderExcelMultipartFile, trackingNumberMultipartFile, ShopCode.COUPANG, DeliveryCompanyCode.CJ);
     }
 
     @PostMapping("naver/tracking-number/enter")
     public void enterTrackingNumberNaver(@RequestParam("order") MultipartFile orderExcelMultipartFile, @RequestParam("trackingNumber") MultipartFile trackingNumberMultipartFile) {
-        excelTransformService.enterTrackingNumber(orderExcelMultipartFile, trackingNumberMultipartFile, ShopCode.NAVER);
+        excelTransformService.enterTrackingNumber(orderExcelMultipartFile, trackingNumberMultipartFile, ShopCode.NAVER, DeliveryCompanyCode.CJ);
     }
 }
