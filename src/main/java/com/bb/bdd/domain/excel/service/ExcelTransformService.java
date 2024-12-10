@@ -859,6 +859,7 @@ public class ExcelTransformService {
         try (XSSFWorkbook xlsxWb = excelReader.readXlsxFile(orderExcel);
              FileOutputStream fos = new FileOutputStream(tempFile)) {
 
+            xlsxWb.setSheetName(0, shopCode.getTrackingNumberSheetName());
             XSSFSheet sheet = xlsxWb.getSheetAt(0);
             XSSFRow headerRow = sheet.getRow(shopCode.getHeaderRowIndex());
 
