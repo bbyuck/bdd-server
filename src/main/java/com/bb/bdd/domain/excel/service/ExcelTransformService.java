@@ -888,12 +888,9 @@ public class ExcelTransformService {
                 String trackingNumber = trackingNumberMapping.get(trackingNumberKey);
 
                 if (StringUtils.hasText(trackingNumber)) {
-                    Cell trackingNumberCell = row.getCell(trackingNumberColumnIndex);
-
-                    /**
-                     * cell 초기화
-                     */
                     row.createCell(trackingNumberColumnIndex);
+
+                    Cell trackingNumberCell = row.getCell(trackingNumberColumnIndex);
                     trackingNumberCell.setCellValue(trackingNumber);
                     trackingNumberCell.setCellStyle(row.getCell(shopCode.getKeyColumnIndex()).getCellStyle());
                 }
