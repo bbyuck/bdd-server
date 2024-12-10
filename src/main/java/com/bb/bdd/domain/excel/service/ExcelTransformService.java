@@ -858,44 +858,19 @@ public class ExcelTransformService {
 
         try (XSSFWorkbook xlsxWb = excelReader.readXlsxFile(orderExcel);
              FileOutputStream fos = new FileOutputStream(tempFile)) {
+            /**
+             * 운송장 번호 입력 공통 로직
+             */
+            enterTrackingNumberOnOrderExcelCommonLogic(orderMapping, trackingNumberMapping, shopCode, xlsxWb);
 
-            xlsxWb.setSheetName(0, shopCode.getTrackingNumberSheetName());
-            XSSFSheet sheet = xlsxWb.getSheetAt(0);
-            XSSFRow headerRow = sheet.getRow(shopCode.getHeaderRowIndex());
-
-            int trackingNumberColumnIndex = -1;
-
-            for (Cell cell : headerRow) {
-                String cellValue = excelReader.getCellValueAsString(cell);
-
-                if (shopCode.getTrackingNumberColumnName().equals(cellValue)) {
-                    trackingNumberColumnIndex = cell.getColumnIndex();
-                    break;
-                }
-            }
-
-            if (trackingNumberColumnIndex == -1) {
-                log.error("운송장번호 컬럼을 찾을 수 없습니다.");
-                throw new RuntimeException("운송장번호 컬럼을 찾을 수 없습니다.");
-            }
-
-            for (Row row : sheet) {
-                if (row.getRowNum() <= shopCode.getHeaderRowIndex()) {
-                    continue;
-                }
-
-                String orderDeliveryKey = excelReader.getCellValueAsString(row.getCell(shopCode.getKeyColumnIndex()));
-                String trackingNumberKey = orderMapping.get(orderDeliveryKey);
-                String trackingNumber = trackingNumberMapping.get(trackingNumberKey);
-
-                if (StringUtils.hasText(trackingNumber)) {
-                    row.createCell(trackingNumberColumnIndex);
-
-                    Cell trackingNumberCell = row.getCell(trackingNumberColumnIndex);
-                    trackingNumberCell.setCellValue(trackingNumber);
-                    trackingNumberCell.setCellStyle(row.getCell(shopCode.getKeyColumnIndex()).getCellStyle());
-                }
-                log.debug("{}", row.getCell(trackingNumberColumnIndex));
+            /**
+             * 네이버 전용 로직
+             */
+            if (shopCode == ShopCode.NAVER) {
+                // 삭제하려는 행의 인덱스 (0부터 시작)
+                // 첫 행 삭제
+                int deleteTargetRow = 0;
+                excelReader.deleteRow(xlsxWb, deleteTargetRow);
             }
 
             xlsxWb.write(fos);
@@ -905,6 +880,49 @@ public class ExcelTransformService {
         }
 
         return tempFile;
+    }
+
+
+
+    private void enterTrackingNumberOnOrderExcelCommonLogic(Map<String, String> orderMapping, Map<String, String> trackingNumberMapping, ShopCode shopCode, XSSFWorkbook xlsxWb) {
+        xlsxWb.setSheetName(0, shopCode.getTrackingNumberSheetName());
+        XSSFSheet sheet = xlsxWb.getSheetAt(0);
+        XSSFRow headerRow = sheet.getRow(shopCode.getHeaderRowIndex());
+
+        int trackingNumberColumnIndex = -1;
+
+        for (Cell cell : headerRow) {
+            String cellValue = excelReader.getCellValueAsString(cell);
+
+            if (shopCode.getTrackingNumberColumnName().equals(cellValue)) {
+                trackingNumberColumnIndex = cell.getColumnIndex();
+                break;
+            }
+        }
+
+        if (trackingNumberColumnIndex == -1) {
+            log.error("운송장번호 컬럼을 찾을 수 없습니다.");
+            throw new RuntimeException("운송장번호 컬럼을 찾을 수 없습니다.");
+        }
+
+        for (Row row : sheet) {
+            if (row.getRowNum() <= shopCode.getHeaderRowIndex()) {
+                continue;
+            }
+
+            String orderDeliveryKey = excelReader.getCellValueAsString(row.getCell(shopCode.getKeyColumnIndex()));
+            String trackingNumberKey = orderMapping.get(orderDeliveryKey);
+            String trackingNumber = trackingNumberMapping.get(trackingNumberKey);
+
+            if (StringUtils.hasText(trackingNumber)) {
+                row.createCell(trackingNumberColumnIndex);
+
+                Cell trackingNumberCell = row.getCell(trackingNumberColumnIndex);
+                trackingNumberCell.setCellValue(trackingNumber);
+                trackingNumberCell.setCellStyle(row.getCell(shopCode.getKeyColumnIndex()).getCellStyle());
+            }
+            log.debug("{}", row.getCell(trackingNumberColumnIndex));
+        }
     }
 
 
