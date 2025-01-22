@@ -6,7 +6,6 @@ import com.bb.bdd.domain.excel.dto.CnpInputDto;
 import com.bb.bdd.domain.excel.dto.CoupangColumnDto;
 import com.bb.bdd.domain.excel.dto.NaverColumnDto;
 import com.bb.bdd.domain.excel.dto.Pair;
-import com.bb.bdd.domain.excel.repository.ItemRepository;
 import com.bb.bdd.domain.excel.util.ExcelReader;
 import com.bb.bdd.domain.excel.util.FileManager;
 import jakarta.annotation.PostConstruct;
@@ -41,13 +40,11 @@ import java.util.Map.Entry;
 @RequiredArgsConstructor
 public class ExcelTransformService {
 
-//    @PostConstruct
+    @PostConstruct
     public void init() throws IOException {
         readCoupangProducts();
         readNaverProducts();
     }
-
-    private final ItemRepository itemRepository;
 
     private final HashMap<String, String> coupangDict = new HashMap<>();
     private final HashMap<String, String> naverProductDict = new HashMap<>();
@@ -406,9 +403,6 @@ public class ExcelTransformService {
                             }
                         }
                     } else {
-                        if (coupangDict.get(productName) == null) {
-                            throw new IllegalStateException("상품명이 등록되어 있지 않습니다. ====== " + productName);
-                        }
                         productName = coupangDict.get(productName);
                         coupangCountMap.replace(productName, coupangCountMap.get(productName) + quantity);
                         ans += productName;
