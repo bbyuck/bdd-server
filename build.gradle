@@ -25,7 +25,6 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
@@ -35,14 +34,10 @@ dependencies {
 	implementation 'org.apache.xmlbeans:xmlbeans:3.1.0'
 	implementation 'org.apache.commons:commons-compress:1.19'
 
-	implementation 'com.oracle.database.jdbc:ojdbc8:23.3.0.23.09'
-	implementation 'com.oracle.database.jdbc:ucp:23.3.0.23.09'
-	implementation 'com.oracle.database.security:oraclepki:23.3.0.23.09'
-	implementation 'com.oracle.database.security:osdt_core:21.11.0.0'
-	implementation 'com.oracle.database.security:osdt_cert:21.11.0.0'
 
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

@@ -22,11 +22,17 @@ public class Item {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "source_name")
-    private String sourceName;
+    @Column(name = "product_id")
+    private Long productId;
 
-    @Column(name = "mapping_name")
-    private String mappingName;
+    @Column(name = "option_id")
+    private Long optionId;
+
+    @Column(name = "product_name")
+    private String productName;
+
+    @Column(name = "product_option")
+    private String productOption;
 
     @Column(name = "shop")
     private ShopCode shop;

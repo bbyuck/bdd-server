@@ -1,23 +1,6 @@
 spring:
   application:
     name: bdd
-  datasource:
-    driver-class-name: oracle.jdbc.driver.OracleDriver
-    username: ADMIN
-    password: 1q2w3e4r5T!@
-    url: jdbc:oracle:thin:@bdd_medium?TNS_ADMIN=/Users/kanghyuk/Desktop/2025/workspace/bdd/Wallet_bdd
-  jpa:
-    defer-datasource-initialization: true
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        show_sql: true
-        jdbc:
-          batch_size: 1000
-
 server:
   port: 8080
 
